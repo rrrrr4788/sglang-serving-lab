@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.pyc
+*.pkl
+*.log
+
+models/
+cache/
+data/
+results/raw/
+
+*.sqlite
+*.db
