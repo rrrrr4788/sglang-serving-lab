@@ -8,6 +8,7 @@ services:
     shm_size: 2gb
     environment:
       SGLANG_API_KEY: ${SGLANG_API_KEY:?Set a private SGLANG_API_KEY in .env}
+      SGLANG_REQ_WAITING_TIMEOUT: "5"
       MODEL_PATH: ${MODEL_PATH:-Qwen/Qwen3-0.6B}
     entrypoint: ["/bin/sh", "-ec"]
     command:
@@ -17,6 +18,8 @@ services:
         --api-key "$$SGLANG_API_KEY"
         --cuda-graph-bs-decode 1 2 4 8 16
         --cuda-graph-max-bs-decode 16
+        --max-running-requests 8
+        --max-queued-requests 16
     ports:
       - "127.0.0.1:${SGLANG_PORT:-30000}:30000"
     volumes:
