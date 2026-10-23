@@ -89,6 +89,13 @@ raw new benchmark output, databases, and credentials must stay out of Git.
 Grafana admin environment variables initialize a new volume; changing `.env` alone
 does not reset the password in an already initialized Grafana database.
 
+## Bounded-retry client
+
+[examples/reliable_client.py](examples/reliable_client.py) provides non-streaming
+inference with a shared call budget, bounded retries and jittered backoff. It reads
+its private key from the environment. See [usage and limitations](docs/reliable-client.md).
+The example does not guarantee server-side cancellation or exactly-once execution.
+
 ## Benchmarks and evidence
 
 The runner uses the benchmark client **inside the pinned SGLang container**, and reads
