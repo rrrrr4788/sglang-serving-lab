@@ -13,6 +13,12 @@ flowchart LR
     Browser[Local browser] -->|127.0.0.1:3001| G
 ```
 
+## Learning roadmap
+
+See [学习计划与当前进度](docs/learning-plan.md) for the project learning goals,
+completed milestones, next step, and deliberately deferred experiments.
+Future assistant sessions should read [AGENTS.md](AGENTS.md) first.
+
 ## Included
 
 - SGLang **0.5.21**, pinned to the exact image digest observed on the existing server.
