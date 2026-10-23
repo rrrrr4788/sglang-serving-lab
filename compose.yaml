@@ -1,28 +1,61 @@
+name: sglang-lab
 services:
+  sglang:
+    # Exact digest observed on the running 0.5.21 server, 2026-10-23.
+    image: lmsysorg/sglang@sha256:b1259f3ea3275f66237c498ea388919729018bc9f01c3d638391e06e2cf3f469
+    restart: unless-stopped
+    gpus: all
+    shm_size: 2gb
+    environment:
+      SGLANG_API_KEY: ${SGLANG_API_KEY:?Set a private SGLANG_API_KEY in .env}
+      MODEL_PATH: ${MODEL_PATH:-Qwen/Qwen3-0.6B}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >-
+        exec sglang serve "$$MODEL_PATH"
+        --host 0.0.0.0 --port 30000 --enable-metrics
+        --api-key "$$SGLANG_API_KEY"
+        --cuda-graph-bs-decode 1 2 4 8 16
+        --cuda-graph-max-bs-decode 16
+    ports:
+      - "127.0.0.1:${SGLANG_PORT:-30000}:30000"
+    volumes:
+      - model_cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:30000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+
   prometheus:
     image: prom/prometheus:v3.7.3
-    container_name: sglang-prometheus
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     ports:
-      - "127.0.0.1:9090:9090"
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
 
   grafana:
     image: grafana/grafana:12.2.1
-    container_name: sglang-grafana
     restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set a private GRAFANA_ADMIN_PASSWORD in .env}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
     ports:
-      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
 volumes:
+  model_cache:
   prometheus_data:
   grafana_data:

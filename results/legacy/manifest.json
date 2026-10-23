@@ -1,0 +1,49 @@
+{
+  "imported_on": "2026-10-23",
+  "historical_hardware": "Not recorded in source logs",
+  "historical_image_digest": "Not recorded in source logs; do not assume current image",
+  "files": [
+    {
+      "source": "~/sglang-benchmarks/length-sweep/D_1024_512.log",
+      "source_sha256": "70599c27fe169c82a0dd9492fd4f52c6b46054f21581a1640bf2fbb11caa57b0",
+      "imported_file": "results/legacy/length-sweep/D_1024_512.txt",
+      "imported_sha256": "34296f1181937d76ebe907cebe5ee6dc8c38553b2eeba2f53a237228c65e084a",
+      "transformation": "Removed terminal progress lines and trailing whitespace; retained arguments and summary. No benchmark rerun."
+    },
+    {
+      "source": "~/sglang-benchmarks/length-sweep/C_128_512.log",
+      "source_sha256": "7ed989ad2fdf56919bef4dfb6284ad3b54527ee340a906e1a3dcd18e6e539ee9",
+      "imported_file": "results/legacy/length-sweep/C_128_512.txt",
+      "imported_sha256": "7972162da38510047f21be82fe83cd3d89cb6205e047870cd5b58fa80bc5280a",
+      "transformation": "Removed terminal progress lines and trailing whitespace; retained arguments and summary. No benchmark rerun."
+    },
+    {
+      "source": "~/sglang-benchmarks/length-sweep/B_1024_128.log",
+      "source_sha256": "5c63bb3f2fb470e2d36ce7e710ce2bf05b2057addd52a9d3db94d85cf6e55119",
+      "imported_file": "results/legacy/length-sweep/B_1024_128.txt",
+      "imported_sha256": "0a120935b05b892477df23a4e5fe933d634e0b6d0edfc3c2c52c0521a97415e5",
+      "transformation": "Removed terminal progress lines and trailing whitespace; retained arguments and summary. No benchmark rerun."
+    },
+    {
+      "source": "~/sglang-benchmarks/length-sweep/A_128_128.log",
+      "source_sha256": "d8db9c7e7e670c39e7aa16c4de938a8e2702469a4ce7e93984495ea65b651dbe",
+      "imported_file": "results/legacy/length-sweep/A_128_128.txt",
+      "imported_sha256": "9d5602b317e94138d64e717b794efb3ef6d2a378c22e141b8380b745e0daf33b",
+      "transformation": "Removed terminal progress lines and trailing whitespace; retained arguments and summary. No benchmark rerun."
+    },
+    {
+      "source": "~/sglang-benchmarks/prefix-cache/shared.log",
+      "source_sha256": "fc8fb05217670ac85a675a10f1e8ac8d4b27fcb91097c3de3ddfd53ce83c6b2c",
+      "imported_file": "results/legacy/prefix-cache/shared.txt",
+      "imported_sha256": "6c687bfe39b25b2c38eb94b169d43a853dc5565a72f527422701bad488acff61",
+      "transformation": "Removed terminal progress lines and trailing whitespace; retained arguments and summary. No benchmark rerun."
+    },
+    {
+      "source": "~/sglang-benchmarks/prefix-cache/unique.log",
+      "source_sha256": "72bbc6891a618c2420970ea73310d6f9c7875bd99205943923cdecd2150bcaf5",
+      "imported_file": "results/legacy/prefix-cache/unique.txt",
+      "imported_sha256": "9f15dfe9230c08354fc04ae579a8a48b78af407cb9dca416f7b793918344c21a",
+      "transformation": "Removed terminal progress lines and trailing whitespace; retained arguments and summary. No benchmark rerun."
+    }
+  ]
+}
