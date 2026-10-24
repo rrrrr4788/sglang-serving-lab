@@ -18,6 +18,8 @@ flowchart LR
 See [学习计划与当前进度](docs/learning-plan.md) for the project learning goals,
 completed milestones, next step, and deliberately deferred experiments.
 Future assistant sessions should read [AGENTS.md](AGENTS.md) first.
+See the [project retrospective](docs/project-retrospective.md) for outcomes,
+design tradeoffs, evidence and known limitations.
 
 ## Included
 
@@ -28,6 +30,9 @@ Future assistant sessions should read [AGENTS.md](AGENTS.md) first.
   latency, allocated GPU memory, and CUDA Graph activity.
 - Six imported historical benchmark logs, source hashes, and a results summary.
 - New benchmark runner reconstructed from saved arguments: length, prefix, concurrency.
+- Bounded scheduling: up to 8 running requests and 16 queued requests,
+  with a configured 5-second queue-wait timeout. Queue-full rejection
+  and recovery were checked; timeout triggering has not been tested.
 
 ## Start a new deployment
 
@@ -36,8 +41,9 @@ NVIDIA driver. Check `docker compose version` and `nvidia-smi` first. Initial st
 requires network access and disk space for the image and Hugging Face model. GPU
 memory requirements depend on the runtime and hardware; no fixed VRAM guarantee is made.
 
-**If the old lab is running, read [migration](docs/migration.md) first.** Its default
-ports and GPU are already occupied. This integration did not stop or replace it.
+If an older deployment is still running on the same machine, follow
+[migration](docs/migration.md) before starting this stack to avoid port
+and GPU conflicts.
 
 ```bash
 git clone https://github.com/rrrrr4788/sglang-serving-lab.git
@@ -49,7 +55,7 @@ chmod 600 .env
 # Use hex secrets; the examples below load this private file as trusted shell input.
 set -a; . ./.env; set +a
 python3 scripts/validate.py
-docker compose up -d
+docker compose up -d --wait --wait-timeout 300
 docker compose ps
 docker compose logs --tail=100 sglang
 python3 scripts/smoke.py
@@ -114,8 +120,10 @@ Review outputs and record GPU, driver, model revision, image digest, server sett
 and competing workloads before selectively publishing results.
 
 See [benchmark methodology and limitations](docs/benchmarks.md),
-[historical results](results/legacy/README.md), and
-[what was actually verified](docs/verification.md).
+[historical results](results/legacy/README.md), the
+[initial integration snapshot](docs/verification.md), and later
+[overload protection evidence](docs/overload-protection.md) and
+[client verification scope](docs/reliable-client.md).
 
 ## Repository layout
 
@@ -125,13 +133,14 @@ compose.yaml                 GPU server and monitoring services
 monitoring/prometheus.yml    Internal service discovery and 5-second scraping
 monitoring/grafana/           Provisioning and dashboard JSON
 benchmarks/run.py            Synthetic length, prefix and concurrency suites
+examples/                    Bounded-retry client, requirement and local checks
 scripts/validate.py          Offline repository and Compose checks
 scripts/smoke.py             Authentication and small inference check
 results/legacy/              Existing experiments and source hashes
-docs/                        Methodology, migration, verification
+docs/                        Methodology, migration, evidence, roadmap and retrospective
 ```
 
-To stop this new project, use `docker compose stop`; restart with `docker compose up -d`.
+To stop this new project, use `docker compose stop`; restart with `docker compose up -d --wait --wait-timeout 300`.
 Named volumes retain model cache and monitoring data. Avoid `down -v` unless you intend
 to delete those volumes. For changes, run `python3 scripts/validate.py`, check dashboard
 queries against real metrics, and describe any runtime verification limits in your PR.

@@ -5,6 +5,12 @@ Before continuing a lesson, implementation, or verification task, read
 current checkpoint, completion criteria, evidence, and deferred topics.
 
 - Follow the current checkpoint when the user says to continue.
+- Teaching defaults to learner execution: explain the goal and tradeoffs, give one
+  bounded set of instructions, let the user edit/run/observe, then review the result.
+- A bare "continue" advances the lesson, not permission to implement, operate services,
+  run checks, or commit/push on the user's behalf. Do those when explicitly requested.
+- Read-only inspection and explicitly requested learning-record updates may support
+  teaching. Do not require approval for each ordinary explanatory step.
 - Teach in Chinese; skip generic basics already covered.
 - Advance one bounded step. Do not turn optional performance research into a prerequisite.
 - Use only the minimum verification needed for the current acceptance criteria.
