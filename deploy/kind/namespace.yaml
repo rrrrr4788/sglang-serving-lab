@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sglang-platform
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: local-budget
+  namespace: sglang-platform
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 4Gi
+    pods: "12"

@@ -1,0 +1,16 @@
+global:
+  resolve_timeout: 1m
+route:
+  receiver: private-lab
+  group_by:
+  - alertname
+  - namespace
+  group_wait: 5s
+  group_interval: 5s
+  repeat_interval: 15m
+receivers:
+- name: private-lab
+  webhook_configs:
+  - url: http://sglang-alert-receiver:8080/alerts
+    send_resolved: true
+    max_alerts: 16

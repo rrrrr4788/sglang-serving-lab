@@ -1,0 +1,53 @@
+{
+  "policy": "English + zh-CN release-facing guides; historical source reports retain their original language.",
+  "pairs": [
+    [
+      "docs/https.md",
+      "docs/https.zh-CN.md"
+    ],
+    [
+      "docs/acceptance.md",
+      "docs/acceptance.zh-CN.md"
+    ],
+    [
+      "docs/operations.md",
+      "docs/operations.zh-CN.md"
+    ],
+    [
+      "docs/cloud-rebuild.md",
+      "docs/cloud-rebuild.zh-CN.md"
+    ],
+    [
+      "docs/architecture.md",
+      "docs/architecture.zh-CN.md"
+    ],
+    [
+      "README.md",
+      "README.zh-CN.md"
+    ],
+    [
+      "docs/presentation.md",
+      "docs/presentation.zh-CN.md"
+    ],
+    [
+      "docs/platform-roadmap.md",
+      "docs/platform-roadmap.zh-CN.md"
+    ],
+    [
+      "docs/README.md",
+      "docs/README.zh-CN.md"
+    ],
+    [
+      "docs/deployment.md",
+      "docs/deployment.zh-CN.md"
+    ],
+    [
+      "docs/documentation.md",
+      "docs/documentation.zh-CN.md"
+    ],
+    [
+      "docs/one-command.md",
+      "docs/one-command.zh-CN.md"
+    ]
+  ]
+}

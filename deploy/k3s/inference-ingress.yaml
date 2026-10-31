@@ -1,0 +1,40 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: inference-limits
+  namespace: sglang-platform
+spec:
+  inFlightReq:
+    amount: 16
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: inference-rate
+  namespace: sglang-platform
+spec:
+  rateLimit:
+    average: 8
+    burst: 16
+    period: 1s
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: sglang-inference
+  namespace: sglang-platform
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - kind: Rule
+    match: Host(`inference.example.invalid`) && Method(`POST`) && (Path(`/generate`)
+      || Path(`/v1/chat/completions`) || Path(`/v1/completions`))
+    middlewares:
+    - name: inference-limits
+    - name: inference-rate
+    services:
+    - name: sglang-gateway
+      port: 80
+  tls:
+    certResolver: le

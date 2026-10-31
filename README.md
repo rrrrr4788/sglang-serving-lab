@@ -1,146 +1,96 @@
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 # SGLang Serving Lab
 
-A single-GPU Qwen3-0.6B serving lab with Docker Compose, API-key authentication,
-Prometheus, provisioned Grafana dashboards, and synthetic benchmark evidence.
-The deployment configuration is version controlled; this is a local lab, not an
-internet-facing production service.
+A quick-deploy SGLang inference reference platform with GPU replica autoscaling.
+A new dedicated two-GPU VM can be configured through one deployment entry; the
+serving architecture supports authenticated routing, monitoring and bounded recovery.
+The single-GPU Compose baseline remains available. This is an engineering
+showcase, not a production SLA or an automatic GPU-node provisioning service.
 
-```mermaid
-flowchart LR
-    Client[Local client + Bearer key] -->|127.0.0.1:30000| S[SGLang / Qwen3-0.6B]
-    P[Prometheus] -->|sglang:30000/metrics| S
-    G[Grafana] -->|prometheus:9090| P
-    Browser[Local browser] -->|127.0.0.1:3001| G
-```
+## Demonstrated capabilities
 
-## Learning roadmap
+- Pinned SGLang0.5.21/Qwen3-0.6B,authentication,Prometheus/Grafana,bounded queue/client.
+- Single-node dual-A6000 K3s: one TP2 replica,then two TP1 replicas with attributed routing.
+- Real1→2→1 elasticity,256 HTTP200,distinct GPUs,new replica serving,idle process release.
+- Trusted HTTPS,credential rejection and private management routes/ports.
+- Complete128-token SSE and cancellation with abort signal/sustained idle.
+- 3500-token in-flight completion,failed-configuration alert,rollback,resolved,inference
+  and KEDA recovery,with planned downtime.
 
-See [学习计划与当前进度](docs/learning-plan.md) for the project learning goals,
-completed milestones, next step, and deliberately deferred experiments.
-Future assistant sessions should read [AGENTS.md](AGENTS.md) first.
-See the [project retrospective](docs/project-retrospective.md) for outcomes,
-design tradeoffs, evidence and known limitations.
+See [bilingual presentation/evidence](docs/presentation.md) and
+[implemented architecture](docs/architecture.md). Original VMs were reported
+destroyed; no live demo endpoint is promised. Public parameterized tools were
+checked offline,not rerun on a fresh GPU VM.
 
-## Included
+Client → Traefik → official Gateway → workers. Prometheus feeds KEDA's single HPA
+and Alertmanager's private receiver. Accepted cloud sessions co-located control
+plane and GPUs on one VM. They do not prove node purchasing,HA,uninterrupted updates,
+capacity/SLO gains,multi-node TP or tenant isolation.
 
-- SGLang **0.5.21**, pinned to the exact image digest observed on the existing server.
-- Decode CUDA Graph batch sizes 1, 2, 4, 8, 16, matching the existing launch command.
-- Prometheus 3.7.3 and Grafana 12.2.1, with datasource and dashboard provisioning.
-- Twelve panels for availability, requests, throughput, prefix cache, KV usage,
-  latency, allocated GPU memory, and CUDA Graph activity.
-- Six imported historical benchmark logs, source hashes, and a results summary.
-- New benchmark runner reconstructed from saved arguments: length, prefix, concurrency.
-- Bounded scheduling: up to 8 running requests and 16 queued requests,
-  with a configured 5-second queue-wait timeout. Queue-full rejection
-  and recovery were checked; timeout triggering has not been tested.
+## Start the local single-GPU baseline
 
-## Start a new deployment
-
-Use Ubuntu/WSL2 with Docker Compose **2.30+**, Docker GPU support, and a compatible
-NVIDIA driver. Check `docker compose version` and `nvidia-smi` first. Initial startup
-requires network access and disk space for the image and Hugging Face model. GPU
-memory requirements depend on the runtime and hardware; no fixed VRAM guarantee is made.
-
-If an older deployment is still running on the same machine, follow
-[migration](docs/migration.md) before starting this stack to avoid port
-and GPU conflicts.
+Requires Ubuntu/WSL2,Docker Compose2.30+,compatible NVIDIA GPU/driver and Docker GPU
+support. Check resource/port ownership and [deployment](docs/deployment.md) first.
 
 ```bash
 git clone https://github.com/rrrrr4788/sglang-serving-lab.git
 cd sglang-serving-lab
 cp .env.example .env
-# Edit .env and set separate, private random values for both required secrets.
+# Set distinct private SGLANG_API_KEY and GRAFANA_ADMIN_PASSWORD values in .env.
 # Generate each with: python3 -c 'import secrets; print(secrets.token_hex(32))'
 chmod 600 .env
-# Use hex secrets; the examples below load this private file as trusted shell input.
 set -a; . ./.env; set +a
 python3 scripts/validate.py
 docker compose up -d --wait --wait-timeout 300
-docker compose ps
-docker compose logs --tail=100 sglang
 python3 scripts/smoke.py
 ```
 
-Smoke checks reject missing/wrong credentials, list models with the correct key,
-and perform one small inference request. Run them after the model finishes loading.
-If startup fails, inspect logs; do not increase network exposure to troubleshoot.
+Ports bind only to127.0.0.1: inference30000,Prometheus9090,Grafana3001.
+Grafana provisions SGLang Lab → SGLang Serving Overview. Credentials/caches remain private.
+Cloud initialization can take much longer than this local quick start.
 
-| Component | Local URL | Access |
-| --- | --- | --- |
-| OpenAI-compatible API | `http://127.0.0.1:30000/v1` | `Authorization: Bearer <private key>` |
-| Prometheus targets | `http://127.0.0.1:9090/targets` | Local machine only |
-| Grafana | `http://127.0.0.1:3001` | Admin credentials from `.env` |
+## One-command cloud deployment
 
-Grafana provisions **SGLang Lab → SGLang Serving Overview** automatically. Its stable
-datasource UID is `prometheus`. Dashboard edits belong in the JSON file in Git.
-Latency rates need traffic and sufficient samples; idle quantiles may show no value.
-GPU memory panels show SGLang allocations, not whole-device utilization or DCGM telemetry.
-
-## Configuration
-
-| Variable | Default / requirement |
-| --- | --- |
-| `SGLANG_API_KEY` | Required; private inference credential |
-| `GRAFANA_ADMIN_PASSWORD` | Required; distinct private password |
-| `GRAFANA_ADMIN_USER` | `admin` |
-| `MODEL_PATH` | `Qwen/Qwen3-0.6B` |
-| `SGLANG_PORT` / `PROMETHEUS_PORT` / `GRAFANA_PORT` | `30000` / `9090` / `3001` |
-
-All published ports bind to `127.0.0.1`. SGLang's internal `0.0.0.0` bind serves the
-Compose network. The pinned release deliberately permits unauthenticated health and
-metrics probes; inference uses `--api-key`. Do not publish these ports publicly.
-There is no TLS gateway, rate limiting, multi-tenant isolation, or HA in this lab.
-Docker administrators can inspect container environment values. `.env`, model cache,
-raw new benchmark output, databases, and credentials must stay out of Git.
-Grafana admin environment variables initialize a new volume; changing `.env` alone
-does not reset the password in an already initialized Grafana database.
-
-## Bounded-retry client
-
-[examples/reliable_client.py](examples/reliable_client.py) provides non-streaming
-inference with a shared call budget, bounded retries and jittered backoff. It reads
-its private key from the environment. See [usage and limitations](docs/reliable-client.md).
-The example does not guarantee server-side cancellation or exactly-once execution.
-
-## Benchmarks and evidence
-
-The runner uses the benchmark client **inside the pinned SGLang container**, and reads
-the API key there without writing it into the command line or output. Use the default
-Qwen model when running these reconstructed experiments.
+After SSH trust is established, deploy the pinned single-node/two-GPU stack with one entry. It prompts for ACME contact, verifies small requests and enables min1/max2 replica scaling. --resume continues only the same owned environment. The integrated launcher is offline-tested, not fresh-GPU validated.
 
 ```bash
-python3 benchmarks/run.py length
-python3 benchmarks/run.py prefix
-python3 benchmarks/run.py concurrency
+python3 scripts/cloud/launch.py --host NEW_VM_IP
 ```
 
-Run only on an idle lab you control: prefix tests flush the prefix cache and every
-suite consumes GPU capacity. New outputs go to ignored `results/raw/<UTC timestamp>/`.
-Review outputs and record GPU, driver, model revision, image digest, server settings,
-and competing workloads before selectively publishing results.
+[Requirements, preview and resume](docs/one-command.md).
 
-See [benchmark methodology and limitations](docs/benchmarks.md),
-[historical results](results/legacy/README.md), the
-[initial integration snapshot](docs/verification.md), and later
-[overload protection evidence](docs/overload-protection.md) and
-[client verification scope](docs/reliable-client.md).
+## Reproduce the cloud path
 
-## Repository layout
+[Initialize a new dedicated two-GPU VM](docs/cloud-rebuild.md) →
+[Preflight and bounded scaling](docs/acceptance.md) →
+[HTTPS](docs/https.md) → [Streaming and recovery](docs/operations.md).
+Save evidence and explicitly destroy the VM at the provider afterward.
+These stages are operator-run; no node purchasing or automatic VM teardown.
+Never apply the entire deploy/k3s directory.
 
-```text
-compose.yaml                 GPU server and monitoring services
-.env.example                 Required secrets and local port settings
-monitoring/prometheus.yml    Internal service discovery and 5-second scraping
-monitoring/grafana/           Provisioning and dashboard JSON
-benchmarks/run.py            Synthetic length, prefix and concurrency suites
-examples/                    Bounded-retry client, requirement and local checks
-scripts/validate.py          Offline repository and Compose checks
-scripts/smoke.py             Authentication and small inference check
-results/legacy/              Existing experiments and source hashes
-docs/                        Methodology, migration, evidence, roadmap and retrospective
+## Offline verification
+
+```bash
+python3 scripts/check_repository.py
+python3 -m unittest discover -s tests -v
+python3 scripts/cloud/cloud.py --help
+python3 scripts/acceptance/operations.py --help
 ```
 
-To stop this new project, use `docker compose stop`; restart with `docker compose up -d --wait --wait-timeout 300`.
-Named volumes retain model cache and monitoring data. Avoid `down -v` unless you intend
-to delete those volumes. For changes, run `python3 scripts/validate.py`, check dashboard
-queries against real metrics, and describe any runtime verification limits in your PR.
+These checks cover public-only CLI,explicit target/DNS guards,SSE framing,private
+render behavior and recovery replays. They do not rerun cloud serving.
+
+## Files and documentation
+
+deploy/kind and services/mock-worker contain CPU simulation; deploy/k3s contains
+pinned cloud profiles/routing/scaling/edge/alerting. scripts/cloud initializes hosts
+and renders HTTPS; scripts/acceptance holds public bounded tools/payloads.
+monitoring holds Compose dashboards; tests contains offline checks; docs/reports
+contains historical evidence.
+
+[Documentation](docs/README.md) · [Roadmap](docs/platform-roadmap.md) ·
+[Language policy](docs/documentation.md).
+Presentation/operating guides have English and Simplified Chinese counterparts;
+historical reports retain their source language with a bilingual evidence summary.
+API keys,kubeconfig,ACME material and personal notes stay out of Git.

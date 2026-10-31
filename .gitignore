@@ -13,3 +13,7 @@ results/raw/
 .private/
 *.sqlite
 *.db
+
+# Optional unfinished personal router exercise; official Gateway is the release path.
+/services/mock-worker/router.py
+/services/mock-worker/config.json

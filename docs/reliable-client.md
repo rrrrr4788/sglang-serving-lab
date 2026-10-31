@@ -50,7 +50,8 @@ docker compose exec -T sglang python3 - 'Say hello.' --budget 15 --retries 2 < e
 
 本地模拟覆盖短暂 503 后成功、401 不重试、持续 503 的次数上限、请求期间预算耗尽、
 Retry-After 期间预算耗尽、读取失败不重放。真实服务只做一次短的非流式调用。
-不通过停止服务、故障注入或额外负载制造错误。实际检查结果以学习计划中的记录为准。
+这些检查没有通过停止服务、故障注入或额外负载制造错误。历史结果与边界见
+[单 GPU 基线报告](archive/single-gpu-baseline.md)，不以私有学习进度作为公开验证依据。
 
 实现参考：[HTTPX AsyncClient](https://www.python-httpx.org/async/)、
 [Python asyncio.wait_for](https://docs.python.org/3.10/library/asyncio-task.html#asyncio.wait_for)。

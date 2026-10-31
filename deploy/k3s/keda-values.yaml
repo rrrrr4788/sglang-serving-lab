@@ -1,0 +1,31 @@
+watchNamespace: sglang-platform
+image:
+  pullPolicy: IfNotPresent
+  keda:
+    tag: "2.21.0"
+  metricsApiServer:
+    tag: "2.21.0"
+  webhooks:
+    tag: "2.21.0"
+resources:
+  operator:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  metricServer:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  webhooks:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi

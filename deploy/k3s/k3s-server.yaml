@@ -1,0 +1,6 @@
+node-name: sglang-gpu-01
+write-kubeconfig-mode: "0600"
+secrets-encryption: true
+disable:
+  - traefik
+  - servicelb

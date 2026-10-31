@@ -1,0 +1,150 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sglang-prometheus
+  namespace: sglang-platform
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sglang-prometheus
+  namespace: sglang-platform
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sglang-prometheus
+  namespace: sglang-platform
+subjects:
+- kind: ServiceAccount
+  name: sglang-prometheus
+  namespace: sglang-platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sglang-prometheus
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sglang-prometheus
+  namespace: sglang-platform
+data:
+  prometheus.yml: "global:\n  scrape_interval: 5s\n  scrape_timeout: 4s\n  evaluation_interval:\
+    \ 5s\nscrape_configs:\n- job_name: sglang\n  kubernetes_sd_configs:\n  - role:\
+    \ pod\n    namespaces:\n      names:\n      - sglang-platform\n  relabel_configs:\n\
+    \  - source_labels:\n    - __meta_kubernetes_pod_label_app\n    regex: sglang-worker\n\
+    \    action: keep\n  - source_labels:\n    - __meta_kubernetes_pod_container_port_name\n\
+    \    regex: http\n    action: keep\n  - source_labels:\n    - __meta_kubernetes_pod_phase\n\
+    \    regex: Running\n    action: keep\n  - source_labels:\n    - __meta_kubernetes_namespace\n\
+    \    target_label: namespace\n  - source_labels:\n    - __meta_kubernetes_pod_name\n\
+    \    target_label: pod\n  - source_labels:\n    - __meta_kubernetes_pod_ready\n\
+    \    target_label: pod_ready\nrule_files:\n- /etc/prometheus/rules/*.yml\nalerting:\n\
+    \  alertmanagers:\n  - static_configs:\n    - targets:\n      - sglang-alertmanager:9093\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sglang-prometheus
+  namespace: sglang-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sglang-prometheus
+  template:
+    metadata:
+      labels:
+        app: sglang-prometheus
+    spec:
+      serviceAccountName: sglang-prometheus
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v3.7.3@sha256:49214755b6153f90a597adcbff0252cc61069f8ab69ce8411285cd4a560e8038
+        imagePullPolicy: IfNotPresent
+        args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.path=/prometheus
+        - --storage.tsdb.retention.time=1h
+        - --storage.tsdb.retention.size=256MB
+        ports:
+        - name: http
+          containerPort: 9090
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          httpGet:
+            path: /-/ready
+            port: http
+          periodSeconds: 2
+          failureThreshold: 60
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: http
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: http
+          periodSeconds: 10
+        volumeMounts:
+        - name: config
+          mountPath: /etc/prometheus
+          readOnly: true
+        - name: data
+          mountPath: /prometheus
+        - name: rules
+          mountPath: /etc/prometheus/rules
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: sglang-prometheus
+      - name: data
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: rules
+        configMap:
+          name: sglang-alert-rules
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sglang-prometheus
+  namespace: sglang-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: sglang-prometheus
+  ports:
+  - name: http
+    port: 9090
+    targetPort: http

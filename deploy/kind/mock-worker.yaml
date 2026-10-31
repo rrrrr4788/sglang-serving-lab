@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-worker
+  namespace: sglang-platform
+spec:
+  selector:
+    matchLabels:
+      app: mock-worker
+  template:
+    metadata:
+      labels:
+        app: mock-worker
+    spec:
+      terminationGracePeriodSeconds: 180
+      containers:
+        - name: worker
+          image: sglang-mock-worker:lab03-v1
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: WORKER_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: BOOT_DELAY_S
+              value: "30"
+            - name: MAX_INFLIGHT
+              value: "2"
+            - name: DEFAULT_DELAY_S
+              value: "10"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 2
+            failureThreshold: 1
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - python
+                  - -c
+                  - |
+                    import json
+                    import time
+                    import urllib.request
+
+                    opener = urllib.request.build_opener(
+                        urllib.request.ProxyHandler({})
+                    )
+
+                    def call(path, data=None):
+                        req = urllib.request.Request(
+                            "http://127.0.0.1:8080" + path,
+                            data=data,
+                            headers={"Content-Type": "application/json"},
+                        )
+                        with opener.open(req, timeout=2) as response:
+                            return json.load(response)
+
+                    deadline = time.monotonic() + 120
+                    state = call("/admin/drain", b"{}")
+
+                    while not (
+                        state["phase"] == "drained"
+                        and state["inflight"] == 0
+                    ):
+                        if time.monotonic() >= deadline:
+                            raise SystemExit("drain timed out")
+                        time.sleep(0.5)
+                        state = call("/status")

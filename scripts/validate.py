@@ -11,7 +11,7 @@ root = Path(__file__).resolve().parents[1]
 for file in [root / 'benchmarks/run.py', root / 'scripts/smoke.py']:
     py_compile.compile(str(file), doraise=True)
 for file in root.rglob('*.json'):
-    if '.git' not in file.parts and 'raw' not in file.parts:
+    if not {'.git', '.private', '.venv', '__pycache__', 'raw'}.intersection(file.relative_to(root).parts):
         json.loads(file.read_text(encoding='utf-8'))
 manifest = json.loads((root / 'results/legacy/manifest.json').read_text())
 for entry in manifest['files']:

@@ -1,0 +1,52 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: mock-worker-load
+  namespace: sglang-platform
+spec:
+  scaleTargetRef:
+    name: mock-worker
+  pollingInterval: 15
+  minReplicaCount: 1
+  maxReplicaCount: 2
+  fallback:
+    failureThreshold: 3
+    replicas: 2
+    behavior: static
+  advanced:
+    horizontalPodAutoscalerConfig:
+      name: mock-worker-hpa
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 15
+        scaleDown:
+          stabilizationWindowSeconds: 120
+          policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 60
+  triggers:
+    - type: prometheus
+      metricType: AverageValue
+      metadata:
+        serverAddress: http://lab-prometheus.sglang-platform.svc.cluster.local:9090
+        threshold: "1"
+        ignoreNullValues: "false"
+        query: |
+          sum(
+            mock_worker_inflight{job="mock-worker"}
+            and on(instance) (mock_worker_ready{job="mock-worker"} == 1)
+          )
+          and on() (min(up{job="mock-worker"}) == 1)
+          and on() (
+            count(mock_worker_inflight{job="mock-worker"})
+            == count(up{job="mock-worker"})
+          )
+          and on() (
+            count(mock_worker_ready{job="mock-worker"})
+            == count(up{job="mock-worker"})
+          )

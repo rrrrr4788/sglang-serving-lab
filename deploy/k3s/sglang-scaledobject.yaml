@@ -1,0 +1,53 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: sglang-worker-load
+  namespace: sglang-platform
+spec:
+  scaleTargetRef:
+    name: sglang-worker
+  pollingInterval: 15
+  minReplicaCount: 1
+  maxReplicaCount: 2
+  fallback:
+    failureThreshold: 3
+    replicas: 2
+    behavior: static
+  advanced:
+    horizontalPodAutoscalerConfig:
+      name: sglang-worker-hpa
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 15
+        scaleDown:
+          stabilizationWindowSeconds: 120
+          policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 60
+  triggers:
+  - type: prometheus
+    metricType: AverageValue
+    metadata:
+      serverAddress: http://sglang-prometheus.sglang-platform.svc.cluster.local:9090
+      threshold: '4'
+      ignoreNullValues: 'false'
+      query: |
+        sum(
+          sglang:num_running_reqs{job="sglang",pod_ready="true",tp_rank="0"}
+          + on(instance)
+          sglang:num_queue_reqs{job="sglang",pod_ready="true",tp_rank="0"}
+        )
+        and on() (min(up{job="sglang",pod_ready="true"}) == 1)
+        and on() (
+          count(sglang:num_running_reqs{job="sglang",pod_ready="true",tp_rank="0"})
+          == count(up{job="sglang",pod_ready="true"})
+        )
+        and on() (
+          count(sglang:num_queue_reqs{job="sglang",pod_ready="true",tp_rank="0"})
+          == count(up{job="sglang",pod_ready="true"})
+        )

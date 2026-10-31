@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sglang-gateway
+  namespace: sglang-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sglang-gateway
+  template:
+    metadata:
+      labels:
+        app: sglang-gateway
+    spec:
+      serviceAccountName: sglang-gateway
+      terminationGracePeriodSeconds: 180
+      containers:
+        - name: gateway
+          image: lmsysorg/sgl-model-gateway:v0.3.2@sha256:83711812e5e7dc706a1b71ba67734be4abb332ab44327544c4af9ab0a20f5d00
+          imagePullPolicy: IfNotPresent
+          args:
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8080"
+            - --policy
+            - round_robin
+            - --service-discovery
+            - --selector
+            - app=sglang-worker
+            - --service-discovery-namespace
+            - sglang-platform
+            - --service-discovery-port
+            - "30000"
+            - --api-key
+            - $(GATEWAY_API_KEY)
+            - --disable-retries
+            - --health-check-interval-secs
+            - "5"
+            - --health-success-threshold
+            - "1"
+          env:
+            - name: GATEWAY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sglang-engine-auth
+                  key: api-key
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /liveness
+              port: http
+            periodSeconds: 2
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: http
+            periodSeconds: 2
+            failureThreshold: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sglang-gateway
+  namespace: sglang-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: sglang-gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

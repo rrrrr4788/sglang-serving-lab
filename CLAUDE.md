@@ -1,22 +1,10 @@
-# Project working memory
+# Repository context
 
-## Active project
+Follow [AGENTS.md](AGENTS.md) for repository guidance and local collaboration context.
+See [docs/README.md](docs/README.md) for public engineering documentation and
+[docs/platform-roadmap.md](docs/platform-roadmap.md) for implementation milestones.
 
-SGLang Serving Lab: a single-GPU serving project with authenticated inference,
-Prometheus/Grafana, bounded scheduling, and practical reliability learning.
+Private working memory, course notes and progress live under the ignored
+`.private/learning/` directory when present; a fresh clone does not require them.
 
-## Durable roadmap
-
-Read [docs/learning-plan.md](docs/learning-plan.md) before continuing.
-That file is the single source of truth for progress, next step, evidence,
-completion criteria, and deferred work. Do not duplicate mutable status here.
-
-## Learning preferences
-
-- Teach in Chinese and focus on relevant engineering choices.
-- The user edits/runs/observes; the assistant explains, guides, reviews and diagnoses.
-- "Continue" means continue teaching; implement or commit on behalf only when requested.
-- Skip generic basics; avoid tangents and unnecessary experiments.
-- Finish each bounded step, record evidence and limitations, then follow the roadmap.
-- Explained concepts are not proof of implementation or runtime verification.
-- Keep secrets and private environment files out of memory and version control.
+Release-facing documentation must be maintained in English and Simplified Chinese, paired in docs/languages.json; follow docs/documentation.md and check both versions together.

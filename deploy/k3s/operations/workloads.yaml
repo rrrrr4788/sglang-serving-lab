@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sglang-alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sglang-alertmanager
+  template:
+    metadata:
+      labels:
+        app: sglang-alertmanager
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: sglang-alertmanager
+        image: prom/alertmanager:v0.34.2@sha256:39d8bb3966c694a124428a3a88fbcffd40bd069129ecd47c059f8a3f17c55f3b
+        imagePullPolicy: IfNotPresent
+        args:
+        - --config.file=/etc/alertmanager/alertmanager.yml
+        - --storage.path=/alertmanager
+        - --data.retention=1h
+        - --cluster.listen-address=
+        ports:
+        - name: http
+          containerPort: 9093
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: config
+          mountPath: /etc/alertmanager
+          readOnly: true
+        - name: data
+          mountPath: /alertmanager
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: http
+          periodSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: http
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: sglang-alertmanager-config
+      - name: data
+        emptyDir:
+          sizeLimit: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sglang-alertmanager
+spec:
+  type: ClusterIP
+  selector:
+    app: sglang-alertmanager
+  ports:
+  - name: http
+    port: 9093
+    targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sglang-alert-receiver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sglang-alert-receiver
+  template:
+    metadata:
+      labels:
+        app: sglang-alert-receiver
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: sglang-alert-receiver
+        image: python:3.13-slim-bookworm@sha256:e32be0e55814a08977501ca863271d9bd02443710db8f2afaf8372e2c4508530
+        imagePullPolicy: IfNotPresent
+        args:
+        - /app/receiver.py
+        ports:
+        - name: http
+          containerPort: 8080
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: config
+          mountPath: /app
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 10
+        command:
+        - python3
+        - -B
+        env:
+        - name: PYTHONUNBUFFERED
+          value: '1'
+      volumes:
+      - name: config
+        configMap:
+          name: sglang-alert-receiver-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sglang-alert-receiver
+spec:
+  type: ClusterIP
+  selector:
+    app: sglang-alert-receiver
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http

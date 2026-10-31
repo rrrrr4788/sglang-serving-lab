@@ -1,0 +1,90 @@
+# ACME email is supplied later through an ignored private values overlay.
+image:
+  registry: docker.io
+  repository: library/traefik
+  tag: v3.7.16
+  digest: sha256:1336e85aaed293bd63d005086e0dd013b04078b26aaeb1c18b26a2f928af7e65
+versionOverride: v3.7.16
+deployment:
+  replicas: 1
+  kind: Deployment
+updateStrategy:
+  type: Recreate
+  rollingUpdate: null
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+api:
+  dashboard: false
+  insecure: false
+  debug: false
+ingressClass:
+  enabled: false
+ingressRoute:
+  dashboard:
+    enabled: false
+  healthcheck:
+    enabled: false
+providers:
+  kubernetesCRD:
+    enabled: true
+    namespaces:
+    - sglang-platform
+    allowCrossNamespace: false
+    allowExternalNameServices: false
+  kubernetesIngress:
+    enabled: false
+  kubernetesGateway:
+    enabled: false
+service:
+  enabled: false
+ports:
+  web:
+    port: 8000
+    hostPort: 80
+  websecure:
+    port: 8443
+    hostPort: 443
+    transport:
+      respondingTimeouts:
+        readTimeout: 30s
+        writeTimeout: 0s
+        idleTimeout: 180s
+  traefik:
+    expose:
+      default: false
+  metrics:
+    expose:
+      default: false
+persistence:
+  enabled: true
+  storageClass: local-path
+  size: 128Mi
+  accessMode: ReadWriteOnce
+  path: /data
+podSecurityContext:
+  runAsUser: 65532
+  runAsGroup: 65532
+  runAsNonRoot: true
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+certificatesResolvers:
+  le:
+    acme:
+      storage: /data/acme.json
+      httpChallenge:
+        entryPoint: web

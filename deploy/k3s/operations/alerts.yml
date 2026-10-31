@@ -1,0 +1,16 @@
+groups:
+- name: sglang-serving
+  rules:
+  - alert: SGLangNoReadyWorker
+    expr: (sum(up{job="sglang",pod_ready="true"}) or on() vector(0)) < 1
+    for: 15s
+    labels:
+      severity: critical
+      namespace: sglang-platform
+    annotations:
+      summary: No scrape-confirmed Ready SGLang worker
+      description: No Ready inference worker is confirmed by metrics. Inspect worker
+        Pod status, failed rollout, GPU allocation and model startup; restore the
+        last accepted configuration. Discovery or scrape failures can also cause this
+        signal.
+      runbook_url: https://github.com/rrrrr4788/sglang-serving-lab/blob/main/docs/operations.md
